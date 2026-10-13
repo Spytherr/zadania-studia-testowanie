@@ -1,2 +1,2 @@
-slowo = "Romek"
+slowo = "Maciek"
 print(slowo)
