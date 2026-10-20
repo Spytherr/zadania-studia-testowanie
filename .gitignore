@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest & środowisko testowe
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Wirtualne środowiska
+.venv/
+venv/
+ENV/
+env/
+
+# Konfiguracje edytorów
+.vscode/
+.idea/
