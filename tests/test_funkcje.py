@@ -115,6 +115,7 @@ def test_word_frequencies():
         "kot": 1,
         "ale": 1,
     }
+    
 
 
 @pytest.mark.parametrize(
