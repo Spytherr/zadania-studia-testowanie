@@ -1,12 +1,24 @@
-import csv
+from contextlib import asynccontextmanager
 
-from pathlib import Path
+from fastapi import Depends, FastAPI
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from fastapi import FastAPI
+from database import engine, get_db
+from load_data import load_data
+from models import Link, Movie, Rating, Tag
 
-from movieDTO import Movie
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_data()
+    try:
+        yield
+    finally:
+        engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/hello")
@@ -15,47 +27,45 @@ def hello():
 
 
 @app.get("/movies")
-def get_movies():
-    movies_file = Path(__file__).with_name("movies.csv")
-    with movies_file.open(encoding="utf-8") as file:
-        movies_data = csv.DictReader(file)
-        data = list(movies_data)
-        
-
-    movies = []
-    for movie_data in data:
-        movie = Movie(
-            movie_id=movie_data["movieId"],
-            title=movie_data["title"],
-            genre=movie_data["genres"],
-        )
-        movies.append(movie.__dict__)
-
-    return movies
+def get_movies(db: Session = Depends(get_db)):
+    return [
+        {"id": movie.id, "title": movie.title, "genre": movie.genres}
+        for movie in db.scalars(select(Movie).order_by(Movie.id))
+    ]
 
 @app.get("/links")
-def get_links():
-    links_file = Path(__file__).with_name("links.csv")
-    with links_file.open(encoding="utf-8") as file:
-        links_data = csv.DictReader(file)
-        data = list(links_data)
-
-    return data
+def get_links(db: Session = Depends(get_db)):
+    return [
+        {
+            "movieId": link.movie_id,
+            "imdbId": link.imdb_id,
+            "tmdbId": link.tmdb_id,
+        }
+        for link in db.scalars(select(Link).order_by(Link.movie_id))
+    ]
 
 @app.get("/ratings")
-def get_ratings():
-    ratings_file = Path(__file__).with_name("ratings.csv")
-    with ratings_file.open(encoding="utf-8") as file:
-        ratings_data = csv.DictReader(file)
-        data = list(ratings_data)
-
-    return data
+def get_ratings(db: Session = Depends(get_db)):
+    return [
+        {
+            "userId": rating.user_id,
+            "movieId": rating.movie_id,
+            "rating": rating.rating,
+            "timestamp": rating.timestamp,
+        }
+        for rating in db.scalars(
+            select(Rating).order_by(Rating.user_id, Rating.movie_id)
+        )
+    ]
 
 @app.get("/tags")
-def get_tags():
-    tags_file = Path(__file__).with_name("tags.csv")
-    with tags_file.open(encoding="utf-8") as file:
-        tags_data = csv.DictReader(file)
-        data = list(tags_data)
-
-    return data
+def get_tags(db: Session = Depends(get_db)):
+    return [
+        {
+            "userId": tag.user_id,
+            "movieId": tag.movie_id,
+            "tag": tag.tag,
+            "timestamp": tag.timestamp,
+        }
+        for tag in db.scalars(select(Tag).order_by(Tag.id))
+    ]
